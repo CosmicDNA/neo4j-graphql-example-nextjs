@@ -1,15 +1,19 @@
-// import { ApolloServer } from '@apollo/server'
-import { Neo4jGraphQL } from '@neo4j/graphql'
-import { dirname, join } from 'path'
-import { fileURLToPath } from 'url'
-import { readFileSync } from 'fs'
-import { startServerAndCreateNextHandler } from '@as-integrations/next'
+import { gql, ApolloServer } from 'apollo-server-micro'
+import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core'
 import neo4j from 'neo4j-driver'
-import { ApolloServer } from '@apollo/server';
+import { Neo4jGraphQL } from '@neo4j/graphql'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const typeDefs = readFileSync(join(__dirname, 'schema.graphql'), 'utf-8').toString()
+const typeDefs = gql`
+  type Movie {
+    title: String
+    actors: [Actor!]! @relationship(type: "ACTED_IN", direction: IN)
+  }
+
+  type Actor {
+    name: String
+    movies: [Movie!]! @relationship(type: "ACTED_IN", direction: OUT)
+  }
+`
 
 const {
   NEO4J_URI,
@@ -25,10 +29,20 @@ const driver = neo4j.driver(
 
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver })
 
-const server = new ApolloServer({
+const apolloServer = new ApolloServer({
   schema: await neoSchema.getSchema(),
+  playground: true,
+  introspection: true,
+  plugins: [ApolloServerPluginLandingPageGraphQLPlayground]
 })
 
-const handler = startServerAndCreateNextHandler(server);
+const startServer = apolloServer.start()
 
-export { handler as GET, handler as POST };
+const handler = async (req, res) => {
+  await startServer
+  await apolloServer.createHandler({
+    path: '/api/graphql'
+  })(req, res)
+}
+
+export { handler as GET, handler as POST }
