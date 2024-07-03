@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 import { readFileSync } from 'fs'
 import { startServerAndCreateNextHandler } from '@as-integrations/next'
 import neo4j from 'neo4j-driver'
-import { ApolloServer } from '@apollo/server';
+import { ApolloServer } from '@apollo/server'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -26,9 +26,7 @@ const driver = neo4j.driver(
 const neoSchema = new Neo4jGraphQL({ typeDefs, driver })
 
 const server = new ApolloServer({
-  schema: await neoSchema.getSchema(),
+  schema: await neoSchema.getSchema()
 })
 
-const handler = startServerAndCreateNextHandler(server);
-
-export { handler as GET, handler as POST };
+export default startServerAndCreateNextHandler(server)
